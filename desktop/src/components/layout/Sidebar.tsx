@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useSessionStore } from '../../stores/sessionStore'
 import { useUIStore } from '../../stores/uiStore'
 import { useTranslation } from '../../i18n'
@@ -80,6 +80,23 @@ export function Sidebar() {
     setRenameValue('')
   }, [renamingId, renameValue, renameSession])
 
+  const startDraggingRef = useRef<(() => Promise<void>) | null>(null)
+
+  useEffect(() => {
+    if (!isTauri) return
+    import(/* @vite-ignore */ '@tauri-apps/api/window')
+      .then(({ getCurrentWindow }) => {
+        const win = getCurrentWindow()
+        startDraggingRef.current = () => win.startDragging()
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleSidebarDrag = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button, input, textarea, select, a, [role="button"]')) return
+    startDraggingRef.current?.()
+  }, [])
+
   const t = useTranslation()
 
   const TIME_GROUP_LABELS: Record<TimeGroup, string> = {
@@ -91,7 +108,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside data-tauri-drag-region className="w-[var(--sidebar-width)] h-full flex flex-col bg-[var(--color-surface-sidebar)] border-r border-[var(--color-border)] select-none">
+    <aside data-tauri-drag-region onMouseDown={handleSidebarDrag} className="w-[var(--sidebar-width)] h-full flex flex-col bg-[var(--color-surface-sidebar)] border-r border-[var(--color-border)] select-none">
       {/* Brand logo — extra top padding in desktop to clear macOS traffic lights */}
       <div className={`px-3 pb-1.5 flex items-center justify-between ${isTauri ? 'pt-[44px]' : 'pt-3'}`}>
         <div className="flex items-center gap-2.5">
