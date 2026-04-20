@@ -304,6 +304,10 @@ export const zh: Record<TranslationKey, string> = {
   'settings.general.effort.medium': '中',
   'settings.general.effort.high': '高',
   'settings.general.effort.max': '最大',
+  'settings.general.webFetchPreflightTitle': 'WebFetch 预检',
+  'settings.general.webFetchPreflightDescription': '桌面端默认跳过 Claude 的域名预检，避免第三方服务商或受限网络下出现误报失败。',
+  'settings.general.webFetchPreflightEnabled': '跳过 WebFetch 域名预检',
+  'settings.general.webFetchPreflightHint': '只有在你明确需要恢复上游默认安全预检时，才建议关闭这个选项。',
 
   // ─── Empty Session ──────────────────────────────────────
   'empty.title': '新建会话',

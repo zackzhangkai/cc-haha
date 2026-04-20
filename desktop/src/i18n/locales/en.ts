@@ -302,6 +302,10 @@ export const en = {
   'settings.general.effort.medium': 'Medium',
   'settings.general.effort.high': 'High',
   'settings.general.effort.max': 'Max',
+  'settings.general.webFetchPreflightTitle': 'WebFetch Preflight',
+  'settings.general.webFetchPreflightDescription': 'Desktop sessions skip Claude\'s domain preflight by default to avoid false failures on third-party providers and restricted networks.',
+  'settings.general.webFetchPreflightEnabled': 'Skip WebFetch domain preflight',
+  'settings.general.webFetchPreflightHint': 'Turn this off only if you explicitly want to restore the upstream safety preflight before each WebFetch request.',
 
   // ─── Empty Session ──────────────────────────────────────
   'empty.title': 'New session',

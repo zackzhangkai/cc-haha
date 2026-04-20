@@ -23,6 +23,7 @@ type SettingsStore = {
   activeProviderName: string | null
   locale: Locale
   theme: ThemeMode
+  skipWebFetchPreflight: boolean
   isLoading: boolean
   error: string | null
 
@@ -32,6 +33,7 @@ type SettingsStore = {
   setEffort: (level: EffortLevel) => Promise<void>
   setLocale: (locale: Locale) => void
   setTheme: (theme: ThemeMode) => Promise<void>
+  setSkipWebFetchPreflight: (enabled: boolean) => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
@@ -42,6 +44,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   activeProviderName: null,
   locale: getStoredLocale(),
   theme: useUIStore.getState().theme,
+  skipWebFetchPreflight: true,
   isLoading: false,
   error: null,
 
@@ -64,6 +67,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         currentModel: model,
         effortLevel: level,
         theme,
+        skipWebFetchPreflight: userSettings.skipWebFetchPreflight !== false,
         isLoading: false,
         error: null,
       })
@@ -115,6 +119,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     } catch {
       set({ theme: prev })
       useUIStore.getState().setTheme(prev)
+    }
+  },
+
+  setSkipWebFetchPreflight: async (enabled) => {
+    const prev = get().skipWebFetchPreflight
+    set({ skipWebFetchPreflight: enabled })
+    try {
+      await settingsApi.updateUser({ skipWebFetchPreflight: enabled })
+    } catch {
+      set({ skipWebFetchPreflight: prev })
     }
   },
 }))

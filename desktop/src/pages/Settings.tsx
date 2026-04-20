@@ -311,6 +311,7 @@ function ProviderFormModal({ open, onClose, mode, provider }: ProviderFormProps)
         const needsProxy = apiFormat !== 'anthropic'
         const merged = {
           ...settings,
+          skipWebFetchPreflight: settings.skipWebFetchPreflight ?? true,
           env: {
             ...((settings.env as Record<string, string>) || {}),
             ANTHROPIC_BASE_URL: needsProxy ? 'http://127.0.0.1:3456/proxy' : baseUrl,
@@ -646,7 +647,16 @@ function PermissionSettings() {
 // ─── General Settings ──────────────────────────────────────
 
 function GeneralSettings() {
-  const { effortLevel, setEffort, locale, setLocale, theme, setTheme } = useSettingsStore()
+  const {
+    effortLevel,
+    setEffort,
+    locale,
+    setLocale,
+    theme,
+    setTheme,
+    skipWebFetchPreflight,
+    setSkipWebFetchPreflight,
+  } = useSettingsStore()
   const t = useTranslation()
 
   const EFFORT_LABELS: Record<EffortLevel, string> = {
@@ -723,6 +733,28 @@ function GeneralSettings() {
             {EFFORT_LABELS[level]}
           </button>
         ))}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">{t('settings.general.webFetchPreflightTitle')}</h2>
+        <p className="text-sm text-[var(--color-text-tertiary)] mb-3">{t('settings.general.webFetchPreflightDescription')}</p>
+        <label className="flex items-start gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-4 py-3 cursor-pointer hover:border-[var(--color-border-focus)] transition-colors">
+          <input
+            type="checkbox"
+            aria-label={t('settings.general.webFetchPreflightEnabled')}
+            checked={skipWebFetchPreflight}
+            onChange={(e) => void setSkipWebFetchPreflight(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+          />
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-[var(--color-text-primary)]">
+              {t('settings.general.webFetchPreflightEnabled')}
+            </div>
+            <div className="text-xs text-[var(--color-text-tertiary)] mt-1 leading-5">
+              {t('settings.general.webFetchPreflightHint')}
+            </div>
+          </div>
+        </label>
       </div>
     </div>
   )

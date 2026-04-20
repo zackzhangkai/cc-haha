@@ -18,5 +18,6 @@ export type UserSettings = {
   effort?: EffortLevel
   permissionMode?: PermissionMode
   theme?: ThemeMode
+  skipWebFetchPreflight?: boolean
   [key: string]: unknown
 }
