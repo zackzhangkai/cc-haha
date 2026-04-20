@@ -206,7 +206,7 @@ export function ActiveSession() {
 
       <TeamStatusBar />
 
-      <ChatInput />
+      <ChatInput variant={isEmpty && !isMemberSession ? 'hero' : 'default'} />
 
       {!isMemberSession && activeTabId ? (
         <ComputerUsePermissionModal
