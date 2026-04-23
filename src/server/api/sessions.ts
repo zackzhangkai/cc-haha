@@ -15,6 +15,8 @@
 import { sessionService } from '../services/sessionService.js'
 import { ApiError, errorResponse } from '../middleware/errorHandler.js'
 import { getSlashCommands } from '../ws/handler.js'
+import { getCommandName } from '../../commands.js'
+import { getSkillDirCommands } from '../../skills/loadSkillsDir.js'
 
 export async function handleSessionsApi(
   req: Request,
@@ -45,7 +47,7 @@ export async function handleSessionsApi(
 
     // Special collection route: /api/sessions/recent-projects
     if (sessionId === 'recent-projects' && req.method === 'GET') {
-      return await getRecentProjects()
+      return await getRecentProjects(url)
     }
 
     // -----------------------------------------------------------------------
@@ -78,7 +80,7 @@ export async function handleSessionsApi(
           { status: 405 }
         )
       }
-      return Response.json({ commands: getSlashCommands(sessionId) })
+      return await getSessionSlashCommands(sessionId)
     }
 
     // Route to conversations handler if sub-resource is 'chat'
@@ -167,6 +169,28 @@ async function deleteSession(sessionId: string): Promise<Response> {
   return Response.json({ ok: true })
 }
 
+async function getSessionSlashCommands(sessionId: string): Promise<Response> {
+  const cachedCommands = getSlashCommands(sessionId)
+  if (cachedCommands.length > 0) {
+    return Response.json({ commands: cachedCommands })
+  }
+
+  const workDir = await sessionService.getSessionWorkDir(sessionId)
+  if (!workDir) {
+    throw ApiError.notFound(`Session not found: ${sessionId}`)
+  }
+
+  const commands = await getSkillDirCommands(workDir)
+  const slashCommands = commands
+    .filter((command) => command.userInvocable !== false)
+    .map((command) => ({
+      name: getCommandName(command),
+      description: command.description || '',
+    }))
+
+  return Response.json({ commands: slashCommands })
+}
+
 async function getGitInfo(sessionId: string): Promise<Response> {
   const workDir = await sessionService.getSessionWorkDir(sessionId)
   if (!workDir) {
@@ -244,14 +268,27 @@ async function patchSession(req: Request, sessionId: string): Promise<Response> 
   return Response.json({ ok: true })
 }
 
+type RecentProjectEntry = {
+  projectPath: string
+  realPath: string
+  projectName: string
+  isGit: boolean
+  repoName: string | null
+  branch: string | null
+  modifiedAt: string
+  sessionCount: number
+}
+
 // In-memory cache for recent projects (TTL: 30s)
-let recentProjectsCache: { data: Response; timestamp: number } | null = null
+let recentProjectsCache: { projects: RecentProjectEntry[]; timestamp: number } | null = null
 const RECENT_PROJECTS_CACHE_TTL = 30_000
 
-async function getRecentProjects(): Promise<Response> {
+async function getRecentProjects(url: URL): Promise<Response> {
+  const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '10', 10) || 10, 1), 500)
+
   // Return cached response if fresh
   if (recentProjectsCache && Date.now() - recentProjectsCache.timestamp < RECENT_PROJECTS_CACHE_TTL) {
-    return recentProjectsCache.data.clone()
+    return Response.json({ projects: recentProjectsCache.projects.slice(0, limit) })
   }
 
   const { sessions } = await sessionService.listSessions({ limit: 200 })
@@ -332,7 +369,6 @@ async function getRecentProjects(): Promise<Response> {
   // Sort by most recent
   projects.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
 
-  const response = Response.json({ projects: projects.slice(0, 10) })
-  recentProjectsCache = { data: response.clone(), timestamp: Date.now() }
-  return response
+  recentProjectsCache = { projects, timestamp: Date.now() }
+  return Response.json({ projects: projects.slice(0, limit) })
 }

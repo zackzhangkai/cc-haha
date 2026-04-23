@@ -51,7 +51,7 @@ export function ToolResultBlock({ content, isError, toolName, standalone = true 
         <span className={`px-2 py-0.5 rounded-full text-[9px] ${
           isError
             ? 'bg-[var(--color-error)]/10'
-            : 'bg-[#D4EAB4] text-[#3B4C24]'
+            : 'bg-[var(--color-diff-added-bg)] text-[var(--color-diff-added-text)]'
         }`}>
           {isError ? t('tool.error') : t('tool.success')}
         </span>

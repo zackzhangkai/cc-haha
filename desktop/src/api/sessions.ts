@@ -42,8 +42,9 @@ export const sessionsApi = {
     return api.patch<{ ok: true }>(`/api/sessions/${sessionId}`, { title })
   },
 
-  getRecentProjects() {
-    return api.get<{ projects: RecentProject[] }>('/api/sessions/recent-projects')
+  getRecentProjects(limit?: number) {
+    const query = typeof limit === 'number' ? `?limit=${limit}` : ''
+    return api.get<{ projects: RecentProject[] }>(`/api/sessions/recent-projects${query}`)
   },
 
   getGitInfo(sessionId: string) {

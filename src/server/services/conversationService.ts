@@ -64,6 +64,33 @@ export class ConversationStartupError extends Error {
 export class ConversationService {
   private sessions = new Map<string, SessionProcess>()
 
+  private buildSessionCliArgs(
+    sessionId: string,
+    sdkUrl: string,
+    shouldResume: boolean,
+    options?: SessionStartOptions,
+  ): string[] {
+    const dangerousMode = process.env.CLAUDE_DANGEROUS_MODE === '1'
+    return this.resolveCliArgs([
+      '--print',
+      '--verbose',
+      '--sdk-url',
+      sdkUrl,
+      '--enable-auth-status',
+      '--input-format',
+      'stream-json',
+      '--output-format',
+      'stream-json',
+      // Desktop chat depends on partial assistant deltas; without this the
+      // server only sees the completed assistant message at turn end.
+      '--include-partial-messages',
+      ...(shouldResume ? ['--resume', sessionId] : ['--session-id', sessionId]),
+      '--replay-user-messages',
+      ...this.getRuntimeArgs(options),
+      ...this.getPermissionArgs(options?.permissionMode, dangerousMode),
+    ])
+  }
+
   async startSession(
     sessionId: string,
     workDir: string,
@@ -88,22 +115,12 @@ export class ConversationService {
       )
     }
 
-    const dangerousMode = process.env.CLAUDE_DANGEROUS_MODE === '1'
-    const args = this.resolveCliArgs([
-      '--print',
-      '--verbose',
-      '--sdk-url',
+    const args = this.buildSessionCliArgs(
+      sessionId,
       sdkUrl,
-      '--enable-auth-status',
-      '--input-format',
-      'stream-json',
-      '--output-format',
-      'stream-json',
-      ...(shouldResume ? ['--resume', sessionId] : ['--session-id', sessionId]),
-      '--replay-user-messages',
-      ...this.getRuntimeArgs(options),
-      ...this.getPermissionArgs(options?.permissionMode, dangerousMode),
-    ])
+      shouldResume,
+      options,
+    )
 
     console.log(
       `[ConversationService] Starting CLI for ${sessionId}, cwd: ${workDir} (process.cwd()=${process.cwd()}, CALLER_DIR will be pinned to workDir)`,
@@ -119,7 +136,7 @@ export class ConversationService {
     // 工作目录就变成 `/`。把 CALLER_DIR / PWD 显式覆盖成 workDir，preload.ts
     // chdir 后落到正确目录。
     //
-    const childEnv = await this.buildChildEnv(workDir)
+    const childEnv = await this.buildChildEnv(workDir, sdkUrl)
 
     let proc: ReturnType<typeof Bun.spawn>
     try {
@@ -156,10 +173,7 @@ export class ConversationService {
     this.readErrorStream(sessionId, proc)
 
     proc.exited.then((code) => {
-      console.log(
-        `[ConversationService] CLI process for ${sessionId} exited with code ${code}`,
-      )
-      this.sessions.delete(sessionId)
+      this.handleProcessExit(sessionId, proc, code)
     })
 
     const STARTUP_GRACE_MS = 3000
@@ -232,6 +246,7 @@ export class ConversationService {
     requestId: string,
     allowed: boolean,
     rule?: string,
+    updatedInput?: Record<string, unknown>,
   ): boolean {
     const session = this.sessions.get(sessionId)
     const pendingRequest = session?.pendingPermissionRequests.get(requestId)
@@ -247,7 +262,7 @@ export class ConversationService {
         response: allowed
           ? {
               behavior: 'allow',
-              updatedInput: {},
+              updatedInput: updatedInput ?? {},
               ...(rule === 'always' && pendingRequest
                 ? {
                     updatedPermissions: [
@@ -440,6 +455,21 @@ export class ConversationService {
     return true
   }
 
+  private handleProcessExit(
+    sessionId: string,
+    proc: SessionProcess['proc'],
+    code: number,
+  ): void {
+    console.log(
+      `[ConversationService] CLI process for ${sessionId} exited with code ${code}`,
+    )
+
+    const activeSession = this.sessions.get(sessionId)
+    if (activeSession?.proc === proc) {
+      this.sessions.delete(sessionId)
+    }
+  }
+
   private getPermissionArgs(
     mode: string | undefined,
     dangerousMode: boolean,
@@ -471,7 +501,10 @@ export class ConversationService {
     return args
   }
 
-  private async buildChildEnv(workDir: string): Promise<Record<string, string>> {
+  private async buildChildEnv(
+    workDir: string,
+    sdkUrl?: string,
+  ): Promise<Record<string, string>> {
     // Provider isolation: when Desktop has its own provider config/index,
     // strip inherited provider env vars so the child CLI reads fresh values
     // from ~/.claude/cc-haha/settings.json instead of stale process.env.
@@ -497,11 +530,27 @@ export class ConversationService {
       }
     }
 
+    let desktopServerUrl: string | undefined
+    if (sdkUrl) {
+      try {
+        const parsed = new URL(sdkUrl)
+        desktopServerUrl = `http://${parsed.host}`
+      } catch {
+        desktopServerUrl = undefined
+      }
+    }
+
     return {
       ...cleanEnv,
       CLAUDE_CODE_ENABLE_TASKS: '1',
       CALLER_DIR: workDir,
       PWD: workDir,
+      ...(sdkUrl
+        ? { CC_HAHA_COMPUTER_USE_HOST_BUNDLE_ID: 'com.claude-code-haha.desktop' }
+        : {}),
+      ...(desktopServerUrl
+        ? { CC_HAHA_DESKTOP_SERVER_URL: desktopServerUrl }
+        : {}),
       // Tell the CLI entrypoint to skip project .env loading. Provider env
       // should come from Desktop-managed config or inherited launch env, not
       // be reintroduced from the repo's .env file.

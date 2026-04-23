@@ -5,7 +5,7 @@ import { useTranslation } from '../i18n'
 import { Modal } from '../components/shared/Modal'
 import { Input } from '../components/shared/Input'
 import { Button } from '../components/shared/Button'
-import type { PermissionMode, EffortLevel } from '../types/settings'
+import type { PermissionMode, EffortLevel, ThemeMode } from '../types/settings'
 import type { Locale } from '../i18n'
 import { PROVIDER_PRESETS } from '../config/providerPresets'
 import type { ProviderPreset } from '../config/providerPresets'
@@ -142,7 +142,7 @@ function ProviderSettings() {
       <div
         className={`relative flex flex-col rounded-xl border transition-all mb-2 ${
           isOfficialActive
-            ? 'border-[var(--color-brand)] bg-[var(--color-primary-fixed)]'
+            ? 'border-[var(--color-brand)] bg-[var(--color-surface-container)] shadow-[var(--shadow-focus-ring)]'
             : 'border-[var(--color-border)] hover:border-[var(--color-border-focus)] cursor-pointer'
         }`}
       >
@@ -155,7 +155,7 @@ function ProviderSettings() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-[var(--color-text-primary)]">{t('settings.providers.officialName')}</span>
               {isOfficialActive && (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[var(--color-brand)] text-white leading-none">{t('common.active')}</span>
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded border border-[var(--color-brand)]/18 bg-[var(--color-brand)]/14 text-[var(--color-brand)] leading-none">{t('common.active')}</span>
               )}
             </div>
             <div className="text-xs text-[var(--color-text-tertiary)] mt-0.5">{t('settings.providers.officialDesc')}</div>
@@ -185,7 +185,7 @@ function ProviderSettings() {
                 key={provider.id}
                 className={`relative flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all group ${
                   isActive
-                    ? 'border-[var(--color-brand)] bg-[var(--color-primary-fixed)]'
+                    ? 'border-[var(--color-brand)] bg-[var(--color-surface-container)] shadow-[var(--shadow-focus-ring)]'
                     : 'border-[var(--color-border)] hover:border-[var(--color-border-focus)]'
                 }`}
               >
@@ -202,7 +202,7 @@ function ProviderSettings() {
                       </span>
                     )}
                     {isActive && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[var(--color-brand)] text-white leading-none">{t('common.active')}</span>
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded border border-[var(--color-brand)]/18 bg-[var(--color-brand)]/14 text-[var(--color-brand)] leading-none">{t('common.active')}</span>
                     )}
                   </div>
                   <div className="text-xs text-[var(--color-text-tertiary)] truncate mt-0.5">
@@ -311,6 +311,7 @@ function ProviderFormModal({ open, onClose, mode, provider }: ProviderFormProps)
         const needsProxy = apiFormat !== 'anthropic'
         const merged = {
           ...settings,
+          skipWebFetchPreflight: settings.skipWebFetchPreflight ?? true,
           env: {
             ...((settings.env as Record<string, string>) || {}),
             ANTHROPIC_BASE_URL: needsProxy ? 'http://127.0.0.1:3456/proxy' : baseUrl,
@@ -437,8 +438,8 @@ function ProviderFormModal({ open, onClose, mode, provider }: ProviderFormProps)
                   onClick={() => handlePresetChange(preset)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
                     selectedPreset.id === preset.id
-                      ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
-                      : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-focus)]'
+                      ? 'border-[var(--color-brand)] bg-[var(--color-surface-container-high)] text-[var(--color-brand)] shadow-[var(--shadow-focus-ring)]'
+                      : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-focus)] hover:bg-[var(--color-surface-hover)]'
                   }`}
                 >
                   {preset.name}
@@ -621,7 +622,7 @@ function PermissionSettings() {
               onClick={() => setPermissionMode(mode)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${
                 isSelected
-                  ? 'border-[var(--color-brand)] bg-[var(--color-primary-fixed)]'
+                  ? 'border-[var(--color-brand)] bg-[var(--color-surface-container)] shadow-[var(--shadow-focus-ring)]'
                   : 'border-[var(--color-border)] hover:border-[var(--color-border-focus)] hover:bg-[var(--color-surface-hover)]'
               }`}
             >
@@ -646,7 +647,16 @@ function PermissionSettings() {
 // ─── General Settings ──────────────────────────────────────
 
 function GeneralSettings() {
-  const { effortLevel, setEffort, locale, setLocale } = useSettingsStore()
+  const {
+    effortLevel,
+    setEffort,
+    locale,
+    setLocale,
+    theme,
+    setTheme,
+    skipWebFetchPreflight,
+    setSkipWebFetchPreflight,
+  } = useSettingsStore()
   const t = useTranslation()
 
   const EFFORT_LABELS: Record<EffortLevel, string> = {
@@ -661,8 +671,32 @@ function GeneralSettings() {
     { value: 'zh', label: '中文' },
   ]
 
+  const THEMES: Array<{ value: ThemeMode; label: string }> = [
+    { value: 'light', label: t('settings.general.appearance.light') },
+    { value: 'dark', label: t('settings.general.appearance.dark') },
+  ]
+
   return (
     <div className="max-w-xl">
+      {/* Appearance selector */}
+      <h2 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">{t('settings.general.appearanceTitle')}</h2>
+      <p className="text-sm text-[var(--color-text-tertiary)] mb-3">{t('settings.general.appearanceDescription')}</p>
+      <div className="flex gap-2 mb-8">
+        {THEMES.map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => void setTheme(value)}
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all ${
+              theme === value
+                ? 'bg-[image:var(--gradient-btn-primary)] text-[var(--color-btn-primary-fg)] border-transparent shadow-[var(--shadow-button-primary)]'
+                : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Language selector */}
       <h2 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">{t('settings.general.languageTitle')}</h2>
       <p className="text-sm text-[var(--color-text-tertiary)] mb-3">{t('settings.general.languageDescription')}</p>
@@ -699,6 +733,28 @@ function GeneralSettings() {
             {EFFORT_LABELS[level]}
           </button>
         ))}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">{t('settings.general.webFetchPreflightTitle')}</h2>
+        <p className="text-sm text-[var(--color-text-tertiary)] mb-3">{t('settings.general.webFetchPreflightDescription')}</p>
+        <label className="flex items-start gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-4 py-3 cursor-pointer hover:border-[var(--color-border-focus)] transition-colors">
+          <input
+            type="checkbox"
+            aria-label={t('settings.general.webFetchPreflightEnabled')}
+            checked={skipWebFetchPreflight}
+            onChange={(e) => void setSkipWebFetchPreflight(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
+          />
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-[var(--color-text-primary)]">
+              {t('settings.general.webFetchPreflightEnabled')}
+            </div>
+            <div className="text-xs text-[var(--color-text-tertiary)] mt-1 leading-5">
+              {t('settings.general.webFetchPreflightHint')}
+            </div>
+          </div>
+        </label>
       </div>
     </div>
   )

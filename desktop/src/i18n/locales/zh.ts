@@ -33,6 +33,8 @@ export const zh: Record<TranslationKey, string> = {
   'sidebar.timeGroup.last7days': '最近 7 天',
   'sidebar.timeGroup.last30days': '最近 30 天',
   'sidebar.timeGroup.older': '更早',
+  'sidebar.collapse': '折叠侧边栏',
+  'sidebar.expand': '展开侧边栏',
 
   // ─── Title Bar ──────────────────────────────────────
   'titlebar.code': '代码',
@@ -274,6 +276,7 @@ export const zh: Record<TranslationKey, string> = {
   'settings.computerUse.setupSuccess': '环境安装完成！',
   'settings.computerUse.setupFail': '安装失败',
   'settings.computerUse.allReady': '所有检查通过，Computer Use 已就绪。',
+  'settings.computerUse.downloadPython': '下载 Python 3',
   'settings.computerUse.recheckBtn': '重新检测',
   'settings.computerUse.requirementsLabel': '需要的 Python 包',
   'settings.computerUse.appsTitle': '已授权应用',
@@ -289,6 +292,10 @@ export const zh: Record<TranslationKey, string> = {
   'settings.computerUse.flagSystemKeys': '系统快捷键',
 
   // Settings > General
+  'settings.general.appearanceTitle': '配色主题',
+  'settings.general.appearanceDescription': '在亮色与暗色工作区之间切换，不影响原有亮色主题。',
+  'settings.general.appearance.light': '亮色',
+  'settings.general.appearance.dark': '暗色',
   'settings.general.languageTitle': '语言',
   'settings.general.languageDescription': '选择应用程序的显示语言。',
   'settings.general.effortTitle': '推理强度',
@@ -297,6 +304,10 @@ export const zh: Record<TranslationKey, string> = {
   'settings.general.effort.medium': '中',
   'settings.general.effort.high': '高',
   'settings.general.effort.max': '最大',
+  'settings.general.webFetchPreflightTitle': 'WebFetch 预检',
+  'settings.general.webFetchPreflightDescription': '桌面端默认跳过 Claude 的域名预检，避免第三方服务商或受限网络下出现误报失败。',
+  'settings.general.webFetchPreflightEnabled': '跳过 WebFetch 域名预检',
+  'settings.general.webFetchPreflightHint': '只有在你明确需要恢复上游默认安全预检时，才建议关闭这个选项。',
 
   // ─── Empty Session ──────────────────────────────────────
   'empty.title': '新建会话',
@@ -334,6 +345,28 @@ export const zh: Record<TranslationKey, string> = {
   'permission.hideDetails': '隐藏详情',
   'permission.showFullInput': '显示完整输入',
   'permission.replacingContent': '替换文件内容',
+
+  // ─── Computer Use Approval ──────────────────────────────────────
+  'computerUseApproval.titleApps': 'Computer Use 想控制这些应用',
+  'computerUseApproval.titleTcc': 'Computer Use 需要 macOS 权限',
+  'computerUseApproval.reason': '请求原因',
+  'computerUseApproval.allow': '本次会话允许',
+  'computerUseApproval.deny': '拒绝',
+  'computerUseApproval.alreadyGranted': '本次会话已授权',
+  'computerUseApproval.notInstalled': '应用未安装',
+  'computerUseApproval.sensitiveApp': '该应用属于高敏感类别，请额外确认后再授权。',
+  'computerUseApproval.alsoRequested': '同时请求了',
+  'computerUseApproval.hideWhileWorking': 'Claude 工作时会隐藏另外 {count} 个应用。',
+  'computerUseApproval.hideWhileWorkingRestore': 'Claude 工作时会隐藏另外 {count} 个应用，结束后会自动恢复。',
+  'computerUseApproval.accessibility': '辅助功能',
+  'computerUseApproval.screenRecording': '屏幕录制',
+  'computerUseApproval.granted': '已授权',
+  'computerUseApproval.notGranted': '未授权',
+  'computerUseApproval.openAccessibility': '打开辅助功能设置',
+  'computerUseApproval.openScreenRecording': '打开屏幕录制设置',
+  'computerUseApproval.tryAgain': '稍后重试',
+  'computerUseApproval.tccHint': '先在系统设置里授予缺失权限，返回后再点“稍后重试”。',
+  'computerUseApproval.tryAgainHint': '“稍后重试”会把控制权交还给 Claude，让它在 macOS 权限生效后重新调用 request_access。',
 
   // ─── Ask User Question ──────────────────────────────────────
   'question.needsInput': 'Claude 需要你的输入',
@@ -535,6 +568,8 @@ export const zh: Record<TranslationKey, string> = {
   'fileSearch.searching': '搜索中...',
   'fileSearch.noMatch': '没有匹配的文件',
   'fileSearch.noFiles': '此目录下无文件',
+  'fileSearch.accessDenied': '无法访问此目录',
+  'fileSearch.loadFailed': '目录加载失败',
   'fileSearch.navigate': '导航',
   'fileSearch.attach': '附加',
   'fileSearch.close': '关闭',

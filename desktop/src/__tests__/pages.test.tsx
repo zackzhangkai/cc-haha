@@ -1,6 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
+
+import { skillsApi } from '../api/skills'
+
+vi.mock('../api/skills', () => ({
+  skillsApi: {
+    list: vi.fn(async () => ({ skills: [] })),
+  },
+}))
 
 // Import all pages
 import { EmptySession } from '../pages/EmptySession'
@@ -13,6 +21,7 @@ import { ToolInspection } from '../pages/ToolInspection'
 import { Sidebar } from '../components/layout/Sidebar'
 import { UserMessage } from '../components/chat/UserMessage'
 import { useChatStore } from '../stores/chatStore'
+import { useSessionStore } from '../stores/sessionStore'
 import { useTabStore } from '../stores/tabStore'
 
 /**
@@ -20,6 +29,38 @@ import { useTabStore } from '../stores/tabStore'
  * and contain key structural elements from the prototype.
  */
 describe('Content-only pages render without errors', () => {
+  it('EmptySession slash picker includes dynamic skills before the first session starts', async () => {
+    vi.mocked(skillsApi.list).mockResolvedValueOnce({
+      skills: [
+        {
+          name: 'lark-mail',
+          description: 'Draft, send, and search emails',
+          source: 'user',
+          userInvocable: true,
+          contentLength: 120,
+          hasDirectory: true,
+        },
+        {
+          name: 'internal-only',
+          description: 'Should stay hidden',
+          source: 'user',
+          userInvocable: false,
+          contentLength: 60,
+          hasDirectory: true,
+        },
+      ],
+    })
+
+    render(<EmptySession />)
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: '/', selectionStart: 1 },
+    })
+
+    expect(await screen.findByText('/lark-mail')).toBeInTheDocument()
+    expect(screen.queryByText('/internal-only')).not.toBeInTheDocument()
+  })
+
   it('EmptySession renders mascot and composer', () => {
     const { container } = render(<EmptySession />)
     expect(container.querySelector('textarea')).toBeInTheDocument()
@@ -49,6 +90,7 @@ describe('Content-only pages render without errors', () => {
           activeToolName: null,
           activeThinkingId: null,
           pendingPermission: null,
+          pendingComputerUsePermission: null,
           tokenUsage: { input_tokens: 0, output_tokens: 0 },
           elapsedSeconds: 0,
           statusVerb: '',
@@ -62,10 +104,69 @@ describe('Content-only pages render without errors', () => {
     // With empty messages, the hero is shown
     expect(container.innerHTML).toContain('New session')
     // ChatInput has a textarea
-    expect(container.querySelector('textarea')).toBeInTheDocument()
+    const textarea = container.querySelector('textarea')
+    expect(textarea).toBeInTheDocument()
+    expect(textarea).toHaveAttribute('placeholder', 'Ask anything...')
+    expect(textarea).toHaveAttribute('rows', '2')
     expect(container.innerHTML).not.toContain('Preview')
     // Cleanup
     useTabStore.setState({ tabs: [], activeTabId: null })
+    useChatStore.setState({ sessions: {} })
+  })
+
+  it('ActiveSession keeps the compact composer once messages exist', () => {
+    const SESSION_ID = 'test-active-session-with-messages'
+    useTabStore.setState({ tabs: [{ sessionId: SESSION_ID, title: 'Test', type: 'session' as const, status: 'idle' }], activeTabId: SESSION_ID })
+    useChatStore.setState({
+      sessions: {
+        [SESSION_ID]: {
+          messages: [{
+            id: 'msg-1',
+            type: 'user_text',
+            content: 'hello',
+            timestamp: Date.now(),
+          }],
+          chatState: 'idle',
+          connectionState: 'connected',
+          streamingText: '',
+          streamingToolInput: '',
+          activeToolUseId: null,
+          activeToolName: null,
+          activeThinkingId: null,
+          pendingPermission: null,
+          pendingComputerUsePermission: null,
+          tokenUsage: { input_tokens: 0, output_tokens: 0 },
+          elapsedSeconds: 0,
+          statusVerb: '',
+          slashCommands: [],
+          agentTaskNotifications: {},
+          elapsedTimer: null,
+        },
+      },
+    })
+    useSessionStore.setState({
+      sessions: [{
+        id: SESSION_ID,
+        title: 'Test',
+        createdAt: '2026-04-10T00:00:00.000Z',
+        modifiedAt: '2026-04-10T00:00:00.000Z',
+        messageCount: 1,
+        projectPath: '',
+        workDir: null,
+        workDirExists: true,
+      }],
+      activeSessionId: SESSION_ID,
+      isLoading: false,
+      error: null,
+    })
+
+    render(<ActiveSession />)
+
+    const textarea = screen.getByPlaceholderText('Ask Claude to edit, debug or explain...')
+    expect(textarea).toHaveAttribute('rows', '1')
+
+    useTabStore.setState({ tabs: [], activeTabId: null })
+    useSessionStore.setState({ sessions: [], activeSessionId: null, isLoading: false, error: null })
     useChatStore.setState({ sessions: {} })
   })
 
@@ -83,6 +184,7 @@ describe('Content-only pages render without errors', () => {
           activeToolName: null,
           activeThinkingId: null,
           pendingPermission: null,
+          pendingComputerUsePermission: null,
           tokenUsage: { input_tokens: 0, output_tokens: 0 },
           elapsedSeconds: 0,
           statusVerb: '',

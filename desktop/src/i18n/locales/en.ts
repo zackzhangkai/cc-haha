@@ -31,6 +31,8 @@ export const en = {
   'sidebar.timeGroup.last7days': 'Last 7 days',
   'sidebar.timeGroup.last30days': 'Last 30 days',
   'sidebar.timeGroup.older': 'Older',
+  'sidebar.collapse': 'Collapse sidebar',
+  'sidebar.expand': 'Expand sidebar',
 
   // ─── Title Bar ──────────────────────────────────────
   'titlebar.code': 'Code',
@@ -272,6 +274,7 @@ export const en = {
   'settings.computerUse.setupSuccess': 'Environment setup complete!',
   'settings.computerUse.setupFail': 'Setup failed',
   'settings.computerUse.allReady': 'All checks passed. Computer Use is ready.',
+  'settings.computerUse.downloadPython': 'Download Python 3',
   'settings.computerUse.recheckBtn': 'Recheck Status',
   'settings.computerUse.requirementsLabel': 'Required packages',
   'settings.computerUse.appsTitle': 'Authorized Apps',
@@ -287,6 +290,10 @@ export const en = {
   'settings.computerUse.flagSystemKeys': 'System Key Combos',
 
   // Settings > General
+  'settings.general.appearanceTitle': 'Appearance',
+  'settings.general.appearanceDescription': 'Switch between the original light workspace and the new dark workspace.',
+  'settings.general.appearance.light': 'Light',
+  'settings.general.appearance.dark': 'Dark',
   'settings.general.languageTitle': 'Language',
   'settings.general.languageDescription': 'Choose the display language for the application.',
   'settings.general.effortTitle': 'Effort Level',
@@ -295,6 +302,10 @@ export const en = {
   'settings.general.effort.medium': 'Medium',
   'settings.general.effort.high': 'High',
   'settings.general.effort.max': 'Max',
+  'settings.general.webFetchPreflightTitle': 'WebFetch Preflight',
+  'settings.general.webFetchPreflightDescription': 'Desktop sessions skip Claude\'s domain preflight by default to avoid false failures on third-party providers and restricted networks.',
+  'settings.general.webFetchPreflightEnabled': 'Skip WebFetch domain preflight',
+  'settings.general.webFetchPreflightHint': 'Turn this off only if you explicitly want to restore the upstream safety preflight before each WebFetch request.',
 
   // ─── Empty Session ──────────────────────────────────────
   'empty.title': 'New session',
@@ -332,6 +343,28 @@ export const en = {
   'permission.hideDetails': 'Hide details',
   'permission.showFullInput': 'Show full input',
   'permission.replacingContent': 'Replacing content in file',
+
+  // ─── Computer Use Approval ──────────────────────────────────────
+  'computerUseApproval.titleApps': 'Computer Use wants to control these apps',
+  'computerUseApproval.titleTcc': 'Computer Use needs macOS permissions',
+  'computerUseApproval.reason': 'Why Claude is asking',
+  'computerUseApproval.allow': 'Allow for session',
+  'computerUseApproval.deny': 'Deny',
+  'computerUseApproval.alreadyGranted': 'Already granted for this session',
+  'computerUseApproval.notInstalled': 'App not installed',
+  'computerUseApproval.sensitiveApp': 'This app is treated as sensitive and deserves extra review.',
+  'computerUseApproval.alsoRequested': 'Also requested',
+  'computerUseApproval.hideWhileWorking': '{count} other apps will be hidden while Claude works.',
+  'computerUseApproval.hideWhileWorkingRestore': '{count} other apps will be hidden while Claude works, then restored when Claude is done.',
+  'computerUseApproval.accessibility': 'Accessibility',
+  'computerUseApproval.screenRecording': 'Screen Recording',
+  'computerUseApproval.granted': 'Granted',
+  'computerUseApproval.notGranted': 'Not granted',
+  'computerUseApproval.openAccessibility': 'Open Accessibility',
+  'computerUseApproval.openScreenRecording': 'Open Screen Recording',
+  'computerUseApproval.tryAgain': 'Try again',
+  'computerUseApproval.tccHint': 'Grant the missing permissions in System Settings, then come back and choose "Try again".',
+  'computerUseApproval.tryAgainHint': 'Try again returns control to Claude so it can call request_access once more after macOS permission changes take effect.',
 
   // ─── Ask User Question ──────────────────────────────────────
   'question.needsInput': 'Claude needs your input',
@@ -533,6 +566,8 @@ export const en = {
   'fileSearch.searching': 'Searching...',
   'fileSearch.noMatch': 'No files match',
   'fileSearch.noFiles': 'No files in this directory',
+  'fileSearch.accessDenied': 'Cannot access this directory',
+  'fileSearch.loadFailed': 'Failed to load directory',
   'fileSearch.navigate': 'navigate',
   'fileSearch.attach': 'attach',
   'fileSearch.close': 'close',

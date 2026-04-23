@@ -8,6 +8,13 @@ const {
   handleTeamCreatedMock,
   handleTeamUpdateMock,
   handleTeamDeletedMock,
+  fetchSessionTasksMock,
+  clearTasksMock,
+  setTasksFromTodosMock,
+  markCompletedAndDismissedMock,
+  resetCompletedTasksMock,
+  refreshTasksMock,
+  cliTaskStoreSnapshot,
 } = vi.hoisted(() => ({
   sendMock: vi.fn(),
   getMemberBySessionIdMock: vi.fn<(sessionId: string) => any>(() => null),
@@ -15,6 +22,16 @@ const {
   handleTeamCreatedMock: vi.fn(),
   handleTeamUpdateMock: vi.fn(),
   handleTeamDeletedMock: vi.fn(),
+  fetchSessionTasksMock: vi.fn(),
+  clearTasksMock: vi.fn(),
+  setTasksFromTodosMock: vi.fn(),
+  markCompletedAndDismissedMock: vi.fn(),
+  resetCompletedTasksMock: vi.fn(async () => {}),
+  refreshTasksMock: vi.fn(),
+  cliTaskStoreSnapshot: {
+    tasks: [] as Array<{ id: string; subject: string; status: string; activeForm?: string }>,
+    sessionId: null as string | null,
+  },
 }))
 
 vi.mock('../api/websocket', () => ({
@@ -66,12 +83,14 @@ vi.mock('./sessionStore', () => ({
 vi.mock('./cliTaskStore', () => ({
   useCLITaskStore: {
     getState: () => ({
-      fetchSessionTasks: vi.fn(),
-      tasks: [],
-      clearTasks: vi.fn(),
-      setTasksFromTodos: vi.fn(),
-      markCompletedAndDismissed: vi.fn(),
-      refreshTasks: vi.fn(),
+      fetchSessionTasks: fetchSessionTasksMock,
+      tasks: cliTaskStoreSnapshot.tasks,
+      sessionId: cliTaskStoreSnapshot.sessionId,
+      clearTasks: clearTasksMock,
+      setTasksFromTodos: setTasksFromTodosMock,
+      markCompletedAndDismissed: markCompletedAndDismissedMock,
+      resetCompletedTasks: resetCompletedTasksMock,
+      refreshTasks: refreshTasksMock,
     }),
   },
 }))
@@ -87,6 +106,14 @@ describe('chatStore history mapping', () => {
     getMemberBySessionIdMock.mockReset()
     getMemberBySessionIdMock.mockReturnValue(null)
     sendMessageToMemberMock.mockReset()
+    fetchSessionTasksMock.mockReset()
+    clearTasksMock.mockReset()
+    setTasksFromTodosMock.mockReset()
+    markCompletedAndDismissedMock.mockReset()
+    resetCompletedTasksMock.mockReset()
+    refreshTasksMock.mockReset()
+    cliTaskStoreSnapshot.tasks = []
+    cliTaskStoreSnapshot.sessionId = null
     useChatStore.setState({
       ...initialState,
       sessions: {},
@@ -166,6 +193,7 @@ describe('chatStore history mapping', () => {
           activeToolName: null,
           activeThinkingId: null,
           pendingPermission: null,
+          pendingComputerUsePermission: null,
           tokenUsage: { input_tokens: 0, output_tokens: 0 },
           elapsedSeconds: 0,
           statusVerb: '',
@@ -206,6 +234,74 @@ describe('chatStore history mapping', () => {
     ])
   })
 
+  it('keeps AskUserQuestion permission requests out of the message list while tracking the pending request', () => {
+    useChatStore.setState({
+      sessions: {
+        [TEST_SESSION_ID]: {
+          messages: [
+            {
+              id: 'ask-1',
+              type: 'tool_use',
+              toolName: 'AskUserQuestion',
+              toolUseId: 'tool-ask-1',
+              input: {
+                questions: [
+                  {
+                    question: 'Should we persist data?',
+                    options: [{ label: 'No' }, { label: 'Yes' }],
+                  },
+                ],
+              },
+              timestamp: 1,
+            },
+          ],
+          chatState: 'idle',
+          connectionState: 'connected',
+          streamingText: '',
+          streamingToolInput: '',
+          activeToolUseId: null,
+          activeToolName: null,
+          activeThinkingId: null,
+          pendingPermission: null,
+          pendingComputerUsePermission: null,
+          tokenUsage: { input_tokens: 0, output_tokens: 0 },
+          elapsedSeconds: 0,
+          statusVerb: '',
+          slashCommands: [],
+          agentTaskNotifications: {},
+          elapsedTimer: null,
+        },
+      },
+    })
+
+    useChatStore.getState().handleServerMessage(TEST_SESSION_ID, {
+      type: 'permission_request',
+      requestId: 'perm-ask-1',
+      toolName: 'AskUserQuestion',
+      toolUseId: 'tool-ask-1',
+      input: {
+        questions: [
+          {
+            question: 'Should we persist data?',
+            options: [{ label: 'No' }, { label: 'Yes' }],
+          },
+        ],
+      },
+    })
+
+    const session = useChatStore.getState().sessions[TEST_SESSION_ID]
+    expect(session?.pendingPermission).toMatchObject({
+      requestId: 'perm-ask-1',
+      toolName: 'AskUserQuestion',
+      toolUseId: 'tool-ask-1',
+    })
+    expect(session?.messages).toHaveLength(1)
+    expect(session?.messages[0]).toMatchObject({
+      type: 'tool_use',
+      toolUseId: 'tool-ask-1',
+    })
+  })
+
   it('sends permission mode updates to the active session only', () => {
     useChatStore.getState().setSessionPermissionMode('nonexistent-session', 'acceptEdits')
     expect(sendMock).not.toHaveBeenCalled()
@@ -222,6 +318,7 @@ describe('chatStore history mapping', () => {
           activeToolName: null,
           activeThinkingId: null,
           pendingPermission: null,
+          pendingComputerUsePermission: null,
           tokenUsage: { input_tokens: 0, output_tokens: 0 },
           elapsedSeconds: 0,
           statusVerb: '',
@@ -252,6 +349,7 @@ describe('chatStore history mapping', () => {
           activeToolName: null,
           activeThinkingId: null,
           pendingPermission: null,
+          pendingComputerUsePermission: null,
           tokenUsage: { input_tokens: 0, output_tokens: 0 },
           elapsedSeconds: 0,
           statusVerb: '',
@@ -300,6 +398,7 @@ describe('chatStore history mapping', () => {
           activeToolName: null,
           activeThinkingId: null,
           pendingPermission: null,
+          pendingComputerUsePermission: null,
           tokenUsage: { input_tokens: 0, output_tokens: 0 },
           elapsedSeconds: 0,
           statusVerb: '',
@@ -325,6 +424,180 @@ describe('chatStore history mapping', () => {
     expect(useChatStore.getState().sessions[TEST_SESSION_ID]?.streamingText).toBe('')
   })
 
+  it('resets completed CLI tasks before continuing the next user turn', () => {
+    cliTaskStoreSnapshot.sessionId = TEST_SESSION_ID
+    cliTaskStoreSnapshot.tasks = [
+      { id: '1', subject: 'Existing completed task', status: 'completed' },
+      { id: '2', subject: 'Another completed task', status: 'completed' },
+    ]
+
+    useChatStore.setState({
+      sessions: {
+        [TEST_SESSION_ID]: {
+          messages: [],
+          chatState: 'idle',
+          connectionState: 'connected',
+          streamingText: '',
+          streamingToolInput: '',
+          activeToolUseId: null,
+          activeToolName: null,
+          activeThinkingId: null,
+          pendingPermission: null,
+          pendingComputerUsePermission: null,
+          tokenUsage: { input_tokens: 0, output_tokens: 0 },
+          elapsedSeconds: 0,
+          statusVerb: '',
+          slashCommands: [],
+          agentTaskNotifications: {},
+          elapsedTimer: null,
+        },
+      },
+    })
+
+    useChatStore.getState().sendMessage(TEST_SESSION_ID, '继续下一轮')
+
+    expect(resetCompletedTasksMock).toHaveBeenCalledTimes(1)
+    expect(useChatStore.getState().sessions[TEST_SESSION_ID]?.messages).toMatchObject([
+      {
+        type: 'task_summary',
+        tasks: [
+          { id: '1', subject: 'Existing completed task', status: 'completed' },
+          { id: '2', subject: 'Another completed task', status: 'completed' },
+        ],
+      },
+      {
+        type: 'user_text',
+        content: '继续下一轮',
+      },
+    ])
+  })
+
+  it('tracks Computer Use approval requests separately from generic tool permissions', () => {
+    useChatStore.setState({
+      sessions: {
+        [TEST_SESSION_ID]: {
+          messages: [],
+          chatState: 'idle',
+          connectionState: 'connected',
+          streamingText: '',
+          streamingToolInput: '',
+          activeToolUseId: null,
+          activeToolName: null,
+          activeThinkingId: null,
+          pendingPermission: null,
+          pendingComputerUsePermission: null,
+          tokenUsage: { input_tokens: 0, output_tokens: 0 },
+          elapsedSeconds: 0,
+          statusVerb: '',
+          slashCommands: [],
+          agentTaskNotifications: {},
+          elapsedTimer: null,
+        },
+      },
+    })
+
+    useChatStore.getState().handleServerMessage(TEST_SESSION_ID, {
+      type: 'computer_use_permission_request',
+      requestId: 'cu-1',
+      request: {
+        requestId: 'cu-1',
+        reason: 'Open Finder and inspect a file',
+        apps: [
+          {
+            requestedName: 'Finder',
+            resolved: {
+              bundleId: 'com.apple.finder',
+              displayName: 'Finder',
+            },
+            isSentinel: false,
+            alreadyGranted: false,
+            proposedTier: 'full',
+          },
+        ],
+        requestedFlags: { clipboardRead: true },
+        screenshotFiltering: 'native',
+      },
+    })
+
+    expect(
+      useChatStore.getState().sessions[TEST_SESSION_ID]?.pendingComputerUsePermission,
+    ).toMatchObject({
+      requestId: 'cu-1',
+      request: {
+        reason: 'Open Finder and inspect a file',
+      },
+    })
+    expect(
+      useChatStore.getState().sessions[TEST_SESSION_ID]?.chatState,
+    ).toBe('permission_pending')
+  })
+
+  it('sends Computer Use approval payloads back over websocket', () => {
+    useChatStore.setState({
+      sessions: {
+        [TEST_SESSION_ID]: {
+          messages: [],
+          chatState: 'permission_pending',
+          connectionState: 'connected',
+          streamingText: '',
+          streamingToolInput: '',
+          activeToolUseId: null,
+          activeToolName: null,
+          activeThinkingId: null,
+          pendingPermission: null,
+          pendingComputerUsePermission: {
+            requestId: 'cu-1',
+            request: {
+              requestId: 'cu-1',
+              reason: 'Open Finder',
+              apps: [],
+              requestedFlags: {},
+              screenshotFiltering: 'native',
+            },
+          },
+          tokenUsage: { input_tokens: 0, output_tokens: 0 },
+          elapsedSeconds: 0,
+          statusVerb: '',
+          slashCommands: [],
+          agentTaskNotifications: {},
+          elapsedTimer: null,
+        },
+      },
+    })
+
+    useChatStore.getState().respondToComputerUsePermission(TEST_SESSION_ID, 'cu-1', {
+      granted: [],
+      denied: [],
+      flags: {
+        clipboardRead: true,
+        clipboardWrite: false,
+        systemKeyCombos: false,
+      },
+      userConsented: true,
+    })
+
+    expect(sendMock).toHaveBeenCalledWith(TEST_SESSION_ID, {
+      type: 'computer_use_permission_response',
+      requestId: 'cu-1',
+      response: {
+        granted: [],
+        denied: [],
+        flags: {
+          clipboardRead: true,
+          clipboardWrite: false,
+          systemKeyCombos: false,
+        },
+        userConsented: true,
+      },
+    })
+    expect(
+      useChatStore.getState().sessions[TEST_SESSION_ID]?.pendingComputerUsePermission,
+    ).toBeNull()
+    expect(
+      useChatStore.getState().sessions[TEST_SESSION_ID]?.chatState,
+    ).toBe('tool_executing')
+  })
+
   it('routes member-session messages through team mailbox delivery instead of websocket', async () => {
     const memberSessionId = 'team-member:security-reviewer@test-team'
     getMemberBySessionIdMock.mockReturnValue({
@@ -345,6 +618,7 @@ describe('chatStore history mapping', () => {
           activeToolName: null,
           activeThinkingId: null,
           pendingPermission: null,
+          pendingComputerUsePermission: null,
           tokenUsage: { input_tokens: 0, output_tokens: 0 },
           elapsedSeconds: 0,
           statusVerb: '',
@@ -370,5 +644,34 @@ describe('chatStore history mapping', () => {
       content: 'Check the latest regression',
       pending: true,
     })
+  })
+
+  it('refreshes CLI tasks when switching to an already-connected session', () => {
+    useChatStore.setState({
+      sessions: {
+        [TEST_SESSION_ID]: {
+          messages: [],
+          chatState: 'idle',
+          connectionState: 'connected',
+          streamingText: '',
+          streamingToolInput: '',
+          activeToolUseId: null,
+          activeToolName: null,
+          activeThinkingId: null,
+          pendingPermission: null,
+          pendingComputerUsePermission: null,
+          tokenUsage: { input_tokens: 0, output_tokens: 0 },
+          elapsedSeconds: 0,
+          statusVerb: '',
+          slashCommands: [],
+          agentTaskNotifications: {},
+          elapsedTimer: null,
+        },
+      },
+    })
+
+    useChatStore.getState().connectToSession(TEST_SESSION_ID)
+
+    expect(fetchSessionTasksMock).toHaveBeenCalledWith(TEST_SESSION_ID)
   })
 })
